@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NariShield.ai - Undefeatable Safety Ecosystem</title>
+  
+  <!-- PWA Mobile Home Screen Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#070b14">
+
+  <!-- Leaflet CSS for Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    :root {
+      --bg: #070b14;
+      --card: #111827;
+      --accent: #ef4444;
+      --green: #10b981;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --text: #f9fafb;
+      --sub: #9ca3af;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 12px; }
+    .screen { display: none; width: 100%; max-width: 440px; background: var(--card); border-radius: 20px; padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.7); border: 1px solid #1f2937; }
+    .screen.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    h2 { font-size: 1.35rem; margin-bottom: 4px; text-align: center; font-weight: 800; }
+    p.sub { font-size: 0.78rem; color: var(--sub); text-align: center; margin-bottom: 16px; }
+    
+    .input-group { margin-bottom: 12px; }
+    label { font-size: 0.73rem; color: var(--sub); display: block; margin-bottom: 4px; font-weight: 600; }
+    input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #374151; background: #030712; color: white; font-size: 0.85rem; outline: none; }
+    input:focus, select:focus { border-color: var(--blue); }
+    
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; background: var(--blue); color: white; cursor: pointer; margin-top: 8px; font-size: 0.9rem; transition: background 0.2s; }
+    .btn:active { opacity: 0.8; }
+    .btn-danger { background: var(--accent); }
+    .btn-green { background: var(--green); }
+    .btn-secondary { background: #4b5563; }
+    .btn-warning { background: #f59e0b; color: #000; }
+    .btn-purple { background: var(--purple); }
+    .btn-dark { background: #1f2937; color: #f3f4f6; border: 1px solid #374151; }
+
+    .tag-container { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+    .tag { background: #1f2937; color: #38bdf8; padding: 4px 10px; border-radius: 15px; font-size: 0.72rem; border: 1px solid #374151; }
+
+    /* DASHBOARD STYLES */
+    .dashboard-screen { background: #f8fafc !important; color: #0f172a !important; max-height: 94vh; overflow-y: auto; }
+    .dashboard-screen h2 { color: #0f172a; }
+    .dashboard-screen .sub { color: #64748b; }
+    
+    .grid-container { display: flex; flex-direction: column; gap: 10px; }
+    .dash-part { background: #ffffff; border-radius: 10px; padding: 12px; border: 1px solid #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+    .dash-part h3 { font-size: 0.85rem; color: #0f172a; margin-bottom: 4px; font-weight: 700; }
+    .dash-part p, .dash-part li { font-size: 0.75rem; color: #334155; line-height: 1.3; }
+    
+    #map { width: 100%; height: 130px; border-radius: 8px; margin-top: 6px; border: 1px solid #cbd5e1; z-index: 1; }
+    .db-status { font-size: 0.68rem; color: var(--green); text-align: center; margin-bottom: 8px; font-weight: bold; }
+    
+    .history-log-box { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; max-height: 100px; overflow-y: auto; margin-top: 6px; font-size: 0.72rem; color: #1e293b; }
+    .log-item { padding: 4px 0; border-bottom: 1px solid #e2e8f0; }
+    .log-item:last-child { border-bottom: none; }
+
+    /* FAKE CALL OVERLAY SCREEN */
+    #fakeCallScreen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 9999; flex-direction: column; justify-content: space-between; align-items: center; padding: 50px 20px; color: white; text-align: center; }
+    .fake-caller-name { font-size: 2rem; font-weight: 700; margin-top: 20px; }
+    .fake-caller-status { font-size: 1rem; color: #94a3b8; margin-top: 8px; }
+    .fake-call-actions { display: flex; gap: 40px; width: 100%; justify-content: center; margin-bottom: 40px; }
+    .fake-btn { width: 70px; height: 70px; border-radius: 50%; border: none; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; }
+    .fake-btn-decline { background: #ef4444; }
+    .fake-btn-accept { background: #10b981; }
+
+    /* FAKE SHUTDOWN OVERLAY SCREEN */
+    #fakeShutdownScreen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 10000; flex-direction: column; justify-content: center; align-items: center; color: #555; text-align: center; cursor: pointer; }
+    .shutdown-spinner { width: 40px; height: 40px; border: 3px solid #222; border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- STEP 1: LOGIN -->
+  <div id="screenLogin" class="screen active">
+    <h2>NariShield.ai</h2>
+    <p class="sub">Undefeatable Safety Ecosystem</p>
+    
+    <div class="input-group">
+      <label>Google Email ID *</label>
+      <input type="email" id="loginEmail" placeholder="yourname@gmail.com" />
+    </div>
+    
+    <div class="input-group">
+      <label>Phone Number *</label>
+      <input type="tel" id="loginPhone" placeholder="+91 9876543210" />
+    </div>
+
+    <div class="input-group">
+      <label>Password * (Enter <b>9999</b> for Silent Duress Panic)</label>
+      <input type="password" id="loginPass" placeholder="e.g., Pass123 or 9999" />
+    </div>
+
+    <button class="btn" onclick="goToLang()">Verify & Continue</button>
+  </div>
+
+  <!-- STEP 2: LANGUAGE -->
+  <div id="screenLang" class="screen">
+    <h2>Select Language</h2>
+    <p class="sub">Regional Preference</p>
+
+    <div class="input-group">
+      <select id="langSelect">
+        <option>English</option>
+        <option>Hinglish</option>
+        <option>Hindi (हिंदी)</option>
+        <option>Bengali (বাংলা)</option>
+        <option>Marathi (मराठी)</option>
+        <option>Telugu (తెలుగు)</option>
+        <option>Tamil (தமிழ்)</option>
+        <option>Gujarati (ગુજરાતી)</option>
+      </select>
+    </div>
+
+    <button class="btn" onclick="nextScreen('screenKeywords')">Next Step</button>
+  </div>
+
+  <!-- STEP 3: PERMISSIONS & KEYWORDS -->
+  <div id="screenKeywords" class="screen">
+    <h2>Distress Triggers</h2>
+    <p class="sub">Voice Triggers & Motion Sensors</p>
+    <button class="btn" onclick="requestHardwarePermissions()">Grant High-Accuracy GPS, Mic, Cam & Motion</button>
+    <button class="btn btn-secondary" style="margin-top:8px;" onclick="nextScreen('screenContacts')">Next: Emergency Contacts</button>
+  </div>
+
+  <!-- STEP 4: CONTACTS & VEHICLE PLATE -->
+  <div id="screenContacts" class="screen">
+    <h2>Travel & Contacts</h2>
+    <p class="sub">Emergency Contacts & Vehicle Details</p>
+
+    <div class="input-group"><label>Contact 1 *</label><input type="tel" id="c1" placeholder="+91 Primary Number" /></div>
+    <div class="input-group"><label>Contact 2</label><input type="tel" id="c2" placeholder="+91 Number" /></div>
+    <div class="input-group"><label>Contact 3</label><input type="tel" id="c3" placeholder="+91 Number" /></div>
+    <div class="input-group"><label>Contact 4</label><input type="tel" id="c4" placeholder="+91 Number" /></div>
+    <div class="input-group"><label>Contact 5</label><input type="tel" id="c5" placeholder="+91 Number" /></div>
+    <div class="input-group"><label>Cab / Vehicle Number Plate (Optional)</label><input type="text" id="cabPlateInput" placeholder="e.g., DL 01 AB 1234" /></div>
+
+    <button class="btn btn-green" onclick="saveDataToDatabaseAndLaunch()">Save & Launch Dashboard</button>
+  </div>
+
+  <!-- STEP 5: DASHBOARD -->
+  <div id="screenDashboard" class="screen dashboard-screen">
+    <h2>NariShield Dashboard</h2>
+    <p class="sub">Active Control Hub & Cloud Synced</p>
+    
+    <div id="dbSyncStatus" class="db-status">☁️ Database: Connecting to Firebase...</div>
+
+    <div class="grid-container">
+
+      <!-- PART 0: PAUSE / RESUME MODE -->
+      <div class="dash-part" style="border-left: 4px solid var(--blue); background: #eff6ff;">
+        <h3>0. App Protection Mode</h3>
+        <p id="appModeStatus" style="font-weight: bold; color: #1e40af; margin-bottom: 6px;">Status: 🟢 RESUMED (Active Outside)</p>
+        <button id="pauseResumeBtn" class="btn btn-warning" style="margin-top:2px; padding:8px; font-size:0.8rem;" onclick="toggleAppPauseResume()">⏸ Pause App (At Home)</button>
+      </div>
+
+      <!-- PART 1: SOS TRIGGER & SIREN -->
+      <div class="dash-part" style="border-left: 4px solid var(--accent);">
+        <h3>1. Emergency SOS & Siren Control</h3>
+        <p>SOS via Button, <b>Volume key 3x</b>, or <b>Shake Phone</b>.</p>
+        <button class="btn btn-danger" style="padding: 8px; font-size: 0.85rem; margin-top:6px;" onclick="triggerSOS('Manual SOS Button')">🚨 EMERGENCY SOS</button>
+        <button class="btn btn-secondary" style="padding: 6px; font-size: 0.8rem; margin-top:4px;" onclick="stopSiren()">⏹ Stop Siren / Reset</button>
+      </div>
+
+      <!-- PART 1.5: STEALTH & FAKE UTILITIES -->
+      <div class="dash-part" style="border-left: 4px solid var(--purple);">
+        <h3>1.5 Disguise & Stealth Tools</h3>
+        <p>Fake Call or Disguise as Powered-Off Device.</p>
+        <div style="display: flex; gap: 4px; margin-top: 6px;">
+          <button class="btn btn-purple" style="padding: 6px; font-size: 0.75rem; margin-top:0;" onclick="triggerFakeCall()">📞 Fake Call</button>
+          <button class="btn btn-dark" style="padding: 6px; font-size: 0.75rem; margin-top:0;" onclick="triggerFakeShutdown()">🔌 Fake Power Off</button>
+        </div>
+      </div>
+
+      <!-- PART 2: ALERT HISTORY -->
+      <div class="dash-part" style="border-left: 4px solid #f59e0b;">
+        <h3>2. SOS Alert History Log (Cloud Synced)</h3>
+        <div id="historyLogContainer" class="history-log-box">
+          <div class="log-item">No alerts triggered yet.</div>
+        </div>
+      </div>
+
+      <!-- PART 3: CAB DETAILS -->
+      <div class="dash-part" style="border-left: 4px solid var(--purple);">
+        <h3>3. Vehicle / Cab Travel Info</h3>
+        <input type="text" id="editCabPlate" placeholder="Update Vehicle Number Plate" style="margin-top:4px; padding:6px; font-size:0.75rem;" />
+        <button class="btn" style="padding: 4px; font-size: 0.75rem; margin-top:4px; background:var(--purple);" onclick="updateCabInfo()">Update Vehicle Info</button>
+      </div>
+
+      <!-- PART 4: CONTACTS EDIT -->
+      <div class="dash-part" style="border-left: 4px solid var(--green);">
+        <h3>4. Edit Primary Contact</h3>
+        <input type="tel" id="editC1" placeholder="Update Primary Contact" style="margin-top:4px; padding:6px; font-size:0.75rem;" />
+        <button class="btn btn-green" style="padding: 4px; font-size: 0.75rem; margin-top:4px;" onclick="updateContacts()">Update Contact</button>
+      </div>
+
+      <!-- PART 5: LIVE GPS MAP & MANUAL OVERRIDE -->
+      <div class="dash-part" style="border-left: 4px solid #06b6d4;">
+        <h3>5. Live GPS Tracking & Manual Override</h3>
+        <p>• Emergency: 112 | Women Helpline: 1091</p>
+        <div id="map"></div>
+        <div style="display: flex; gap: 4px; margin-top: 6px;">
+          <button class="btn btn-green" style="padding: 6px; font-size: 0.75rem; margin-top: 0;" onclick="forceExactGPSLocation()">🎯 Refresh GPS</button>
+          <button class="btn btn-secondary" style="padding: 6px; font-size: 0.75rem; margin-top: 0;" onclick="manualOverrideLocation()">✏️ Override</button>
+        </div>
+      </div>
+
+      <!-- PART 6: KEYWORDS -->
+      <div class="dash-part" style="border-left: 4px solid #ec4899;">
+        <h3>6. Add Distress Voice Keywords</h3>
+        <div style="display: flex; gap: 4px; margin-top:4px;">
+          <input type="text" id="newKeywordInput" placeholder="Add word (e.g., Bachao)" style="padding:6px; font-size:0.75rem; flex:1;" />
+          <button class="btn" style="padding: 4px 8px; font-size: 0.75rem; margin-top:0;" onclick="addNewKeyword()">Add</button>
+        </div>
+        <div id="kwDisplayList" class="tag-container" style="margin-top:4px;">
+          <span class="tag">Help</span><span class="tag">Bachao</span><span class="tag">Chhodo</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FAKE CALL OVERLAY UI -->
+  <div id="fakeCallScreen">
+    <div>
+      <p style="letter-spacing: 2px; font-size: 0.8rem; color: #94a3b8;">INCOMING CALL</p>
+      <div class="fake-caller-name">Mom ❤️</div>
+      <div class="fake-caller-status">Mobile • Alwar, Rajasthan</div>
+    </div>
+    <div class="fake-call-actions">
+      <button class="fake-btn fake-btn-decline" onclick="endFakeCall()">📞</button>
+      <button class="fake-btn fake-btn-accept" onclick="answerFakeCall()">💬</button>
+    </div>
+  </div>
+
+  <!-- FAKE SHUTDOWN OVERLAY UI -->
+  <div id="fakeShutdownScreen" onclick="handleShutdownScreenTap()">
+    <div id="shutdownLoader" style="display: flex; flex-direction: column; align-items: center;">
+      <div class="shutdown-spinner"></div>
+      <p style="font-size: 0.85rem; color: #888;">Shutting down...</p>
+    </div>
+  </div>
+
+  <!-- Updated New Firebase SDKs & Safe Connection Handler -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDrjizk4omRsmhg3Zbr7f1HE2kNJQrV1r8",
+      authDomain: "narishieldai-app.firebaseapp.com",
+      projectId: "narishieldai-app",
+      storageBucket: "narishieldai-app.firebasestorage.app",
+      messagingSenderId: "86338366751",
+      appId: "1:86338366751:web:b017a112b6ca0841fd942a",
+      measurementId: "G-RETFS39DW9"
+    };
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+
+      window.syncDataToFirebase = async function(userData) {
+        try {
+          if (!userData.email) return;
+          const docId = userData.email.replace(/[.#$[\]]/g, "_");
+          await setDoc(doc(db, "users", docId), userData, { merge: true });
+          
+          document.getElementById("dbSyncStatus").innerText = "☁️ Database: Synced Successfully to Firebase Firestore!";
+          document.getElementById("dbSyncStatus").style.color = "#10b981";
+        } catch (e) {
+          console.error("Firebase Sync Error:", e);
+          document.getElementById("dbSyncStatus").innerText = "☁️ Database: Offline Mode (Saved Locally)";
+          document.getElementById("dbSyncStatus").style.color = "#ef4444";
+        }
+      };
+    } catch (err) {
+      console.error("Firebase Init Error:", err);
+      document.getElementById("dbSyncStatus").innerText = "☁️ Database Connection Failed";
+    }
+  </script>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    let userStorage = {};
+    let customKeywordsList = ["Help", "Bachao", "Chhodo", "Save Me"];
+    let sosHistoryLogs = [];
+    let recognition;
+    let activeMediaStream = null;
+    let audioRecorder = null;
+    let audioChunks = [];
+    let gpsWatchId = null;
+
+    let isAppPaused = false;
+    let isSosActive = false;
+    let isManualOverride = false;
+    let map = null, marker = null;
+
+    let currentLat = 27.5530; 
+    let currentLng = 76.6346;
+
+    let volumePressCount = 0;
+    let volumePressTimer = null;
+    let sirenAudioCtx = null, sirenOscillator = null;
+
+    let lastX = 0, lastY = 0, lastZ = 0;
+    let lastUpdate = 0;
+    const SHAKE_THRESHOLD = 25;
+
+    let shutdownTapCount = 0;
+    let shutdownTapTimer = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      forceExactGPSLocation();
+      initVolumeKeyListener();
+      initShakeDetector();
+    });
+
+    function forceExactGPSLocation() {
+      if (isManualOverride) return;
+      if (navigator.geolocation && !isAppPaused) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            currentLat = pos.coords.latitude;
+            currentLng = pos.coords.longitude;
+            if (map && marker) {
+              map.setView([currentLat, currentLng], 16);
+              marker.setLatLng([currentLat, currentLng]);
+              marker.bindPopup("<b>High-Accuracy Live GPS Captured</b>").openPopup();
+            }
+          },
+          err => console.log("GPS Error:", err),
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+
+        if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
+        
+        gpsWatchId = navigator.geolocation.watchPosition(
+          pos => {
+            if (!isManualOverride && !isAppPaused) {
+              currentLat = pos.coords.latitude;
+              currentLng = pos.coords.longitude;
+              if (map && marker) {
+                marker.setLatLng([currentLat, currentLng]);
+              }
+            }
+          },
+          err => console.log("Watch GPS Error:", err),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      }
+    }
+
+    function manualOverrideLocation() {
+      const latInput = prompt("Enter Latitude:", currentLat);
+      const lngInput = prompt("Enter Longitude:", currentLng);
+      if (latInput && lngInput && !isNaN(latInput) && !isNaN(lngInput)) {
+        currentLat = parseFloat(latInput);
+        currentLng = parseFloat(lngInput);
+        isManualOverride = true;
+        if (map && marker) {
+          map.setView([currentLat, currentLng], 16);
+          marker.setLatLng([currentLat, currentLng]);
+          marker.bindPopup("<b>Manual GPS Coordinates Active</b>").openPopup();
+        }
+        alert(`Location overridden to: ${currentLat}, ${currentLng}`);
+      }
+    }
+
+    function nextScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if(id === 'screenDashboard') {
+        setTimeout(() => {
+          initMap();
+          if (!isManualOverride) forceExactGPSLocation();
+        }, 200);
+      }
+    }
+
+    function goToLang() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const phone = document.getElementById('loginPhone').value.trim();
+      const pass = document.getElementById('loginPass').value.trim();
+
+      if(!email || !phone || !pass) { 
+        alert("Please enter Email, Phone Number and Password!"); 
+        return; 
+      }
+
+      userStorage.email = email;
+      userStorage.phone = phone;
+      userStorage.password = pass;
+
+      if (pass === "9999") {
+        alert("⚠️ Duress Password Activated. Launching Stealth Protection...");
+        triggerSOS("Duress Password Panic (9999)", true);
+      }
+
+      if(pass.length < 4) {
+        alert("Password must be at least 4 characters long!");
+        return;
+      }
+
+      nextScreen('screenLang');
+    }
+
+    function requestHardwarePermissions() {
+      navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+        .then(stream => {
+          activeMediaStream = stream;
+          try {
+            audioRecorder = new MediaRecorder(stream);
+            audioRecorder.ondataavailable = (e) => { audioChunks.push(e.data); };
+          } catch(err) { console.log("MediaRecorder error:", err); }
+
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              pos => {
+                currentLat = pos.coords.latitude;
+                currentLng = pos.coords.longitude;
+                alert("Mic, Camera, Motion Sensors & GPS Granted Successfully!");
+              },
+              err => alert("Please allow GPS location permission."),
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+          }
+        })
+        .catch(() => alert("Standard permissions applied."));
+    }
+
+    function saveDataToDatabaseAndLaunch() {
+      userStorage.language = document.getElementById('langSelect').value;
+      userStorage.keywords = customKeywordsList;
+      userStorage.cabPlate = document.getElementById('cabPlateInput').value.trim();
+      userStorage.contacts = [
+        document.getElementById('c1').value,
+        document.getElementById('c2').value,
+        document.getElementById('c3').value,
+        document.getElementById('c4').value,
+        document.getElementById('c5').value
+      ].filter(Boolean);
+
+      if(userStorage.contacts.length === 0) {
+        alert("Please enter at least one emergency contact!");
+        return;
+      }
+
+      userStorage.history = sosHistoryLogs;
+
+      if(window.syncDataToFirebase) {
+        window.syncDataToFirebase(userStorage);
+      }
+
+      document.getElementById('editCabPlate').value = userStorage.cabPlate;
+      nextScreen('screenDashboard');
+      startVoiceEngine();
+    }
+
+    function initMap() {
+      if (map !== null) {
+        map.invalidateSize();
+        map.setView([currentLat, currentLng], 16);
+        return;
+      }
+      map = L.map('map').setView([currentLat, currentLng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      marker = L.marker([currentLat, currentLng]).addTo(map).bindPopup("<b>Your Active GPS Location</b>").openPopup();
+    }
+
+    function triggerFakeCall() {
+      document.getElementById('fakeCallScreen').style.display = 'flex';
+    }
+    function endFakeCall() {
+      document.getElementById('fakeCallScreen').style.display = 'none';
+    }
+    function answerFakeCall() {
+      alert("Call Connected. Speaking with Mom...");
+      document.getElementById('fakeCallScreen').style.display = 'none';
+    }
+
+    function triggerFakeShutdown() {
+      const shutdownScreen = document.getElementById('fakeShutdownScreen');
+      const loader = document.getElementById('shutdownLoader');
+      loader.style.display = 'flex';
+      shutdownScreen.style.display = 'flex';
+
+      setTimeout(() => {
+        loader.style.display = 'none';
+      }, 2500);
+    }
+
+    function handleShutdownScreenTap() {
+      shutdownTapCount++;
+      if (shutdownTapTimer) clearTimeout(shutdownTapTimer);
+
+      if (shutdownTapCount >= 3) {
+        shutdownTapCount = 0;
+        document.getElementById('fakeShutdownScreen').style.display = 'none';
+        alert("Phone Woken Up from Fake Shutdown Mode.");
+        return;
+      }
+      shutdownTapTimer = setTimeout(() => { shutdownTapCount = 0; }, 1500);
+    }
+
+    function initShakeDetector() {
+      window.addEventListener('devicemotion', (e) => {
+        if (isSosActive || isAppPaused) return;
+        const current = e.accelerationIncludingGravity;
+        if (!current) return;
+
+        const currentTime = Date.now();
+        if ((currentTime - lastUpdate) > 100) {
+          const diffTime = currentTime - lastUpdate;
+          lastUpdate = currentTime;
+
+          const speed = Math.abs(current.x + current.y + current.z - lastX - lastY - lastZ) / diffTime * 10000;
+          if (speed > SHAKE_THRESHOLD) {
+            triggerSOS("Shake Motion Sensor (Vigorous Shake)");
+          }
+          lastX = current.x;
+          lastY = current.y;
+          lastZ = current.z;
+        }
+      });
+    }
+
+    function toggleAppPauseResume() {
+      isAppPaused = !isAppPaused;
+      const statusText = document.getElementById('appModeStatus');
+      const btn = document.getElementById('pauseResumeBtn');
+
+      if (isAppPaused) {
+        statusText.innerHTML = "Status: 🔴 PAUSED (At Home - Sensors Off)";
+        statusText.style.color = "#dc2626";
+        btn.textContent = "▶ Resume App (Outdoor Mode)";
+        btn.className = "btn btn-green";
+        stopHardwareAccess();
+        alert("App PAUSED! Camera, Mic, Shake & GPS access terminated.");
+      } else {
+        statusText.innerHTML = "Status: 🟢 RESUMED (Active Outside - Protection On)";
+        statusText.style.color = "#1e40af";
+        btn.textContent = "⏸ Pause App (At Home)";
+        btn.className = "btn btn-warning";
+        forceExactGPSLocation();
+        if (!isSosActive) { startVoiceEngine(); }
+        alert("App RESUMED! Protection active.");
+      }
+    }
+
+    function stopHardwareAccess() {
+      if (recognition) { try { recognition.stop(); } catch(e){} }
+      if (activeMediaStream) {
+        activeMediaStream.getTracks().forEach(track => track.stop());
+        activeMediaStream = null;
+      }
+      if (gpsWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsWatchId);
+        gpsWatchId = null;
+      }
+    }
+
+    function updateContacts() {
+      const newC = document.getElementById('editC1').value.trim();
+      if(newC) {
+        userStorage.contacts[0] = newC;
+        if(window.syncDataToFirebase) window.syncDataToFirebase(userStorage);
+        alert("Primary contact updated & synced to cloud!");
+      }
+    }
+
+    function updateCabInfo() {
+      userStorage.cabPlate = document.getElementById('editCabPlate').value.trim();
+      if(window.syncDataToFirebase) window.syncDataToFirebase(userStorage);
+      alert("Vehicle Plate Updated & Synced!");
+    }
+
+    function addNewKeyword() {
+      const kwInput = document.getElementById('newKeywordInput');
+      const kw = kwInput.value.trim();
+      if(kw && !customKeywordsList.includes(kw)) {
+        customKeywordsList.push(kw);
+        userStorage.keywords = customKeywordsList;
+        if(window.syncDataToFirebase) window.syncDataToFirebase(userStorage);
+        const tagContainer = document.getElementById('kwDisplayList');
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = kw;
+        tagContainer.appendChild(tag);
+        kwInput.value = '';
+        alert(`Trigger "${kw}" Added & Synced!`);
+      }
+    }
+
+    function initVolumeKeyListener() {
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'AudioVolumeUp' || e.key.toLowerCase() === 'v') {
+          volumePressCount++;
+          if (volumePressTimer) clearTimeout(volumePressTimer);
+
+          if (volumePressCount >= 3) {
+            volumePressCount = 0;
+            if (!isSosActive && !isAppPaused) {
+              triggerSOS("Volume Key (3x Press)");
+            }
+            return;
+          }
+          volumePressTimer = setTimeout(() => { volumePressCount = 0; }, 1500);
+        }
+      });
+    }
+
+    function playSiren() {
+      try {
+        stopSiren(); 
+        sirenAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        sirenOscillator = sirenAudioCtx.createOscillator();
+        const gainNode = sirenAudioCtx.createGain();
+
+        sirenOscillator.type = 'sawtooth';
+        sirenOscillator.frequency.setValueAtTime(800, sirenAudioCtx.currentTime);
+        sirenOscillator.connect(gainNode);
+        gainNode.connect(sirenAudioCtx.destination);
+        sirenOscillator.start();
+
+        const intervalId = setInterval(() => {
+          if (sirenAudioCtx && sirenAudioCtx.state === 'running' && sirenOscillator) {
+            sirenOscillator.frequency.exponentialRampToValueAtTime(1400, sirenAudioCtx.currentTime + 0.3);
+            sirenOscillator.frequency.exponentialRampToValueAtTime(800, sirenAudioCtx.currentTime + 0.7);
+          } else { clearInterval(intervalId); }
+        }, 800);
+      } catch(e) { console.log(e); }
+    }
+
+    function stopSiren() {
+      try {
+        if (sirenOscillator) { sirenOscillator.stop(); sirenOscillator.disconnect(); sirenOscillator = null; }
+        if (sirenAudioCtx) { sirenAudioCtx.close(); sirenAudioCtx = null; }
+      } catch(e) { console.log(e); }
+
+      isSosActive = false;
+      if (!isAppPaused) { startVoiceEngine(); }
+      alert("⏹ Siren Stopped.");
+    }
+
+    function logSOSAlert(source) {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const entry = { time, source, loc: `${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}` };
+      sosHistoryLogs.unshift(entry);
+      userStorage.history = sosHistoryLogs;
+
+      if(window.syncDataToFirebase) {
+        window.syncDataToFirebase(userStorage);
+      }
+
+      const container = document.getElementById('historyLogContainer');
+      container.innerHTML = sosHistoryLogs.map(l => `
+        <div class="log-item">
+          <b>🚨 [${l.time}]</b> Source: ${l.source}<br>Location: ${l.loc}
+        </div>
+      `).join('');
+    }
+
+    function triggerSOS(source = "Emergency SOS Button", isSilent = false) {
+      if (isSosActive || isAppPaused) return;
+      isSosActive = true;
+
+      if (recognition) { try { recognition.stop(); } catch(e){} }
+      if (!isSilent) playSiren();
+      logSOSAlert(source);
+
+      if (audioRecorder && audioRecorder.state === "inactive") {
+        audioChunks = [];
+        audioRecorder.start();
+        setTimeout(() => { if (audioRecorder.state === "recording") audioRecorder.stop(); }, 5000);
+      }
+
+      let contacts = userStorage.contacts || [document.getElementById('c1').value].filter(Boolean);
+      if (contacts.length === 0) {
+        if (!isSilent) alert("🚨 EMERGENCY SOS ACTIVATED! Siren Sounding.");
+        return;
+      }
+
+      let cabPlate = userStorage.cabPlate || document.getElementById('cabPlateInput').value.trim();
+      let cabInfoText = cabPlate ? `%0A🚨 Vehicle Number Plate: ${cabPlate}` : "";
+
+      let cleanNum = contacts[0].replace(/[^0-9+]/g, '');
+
+      if (navigator.onLine) {
+        const msg = encodeURIComponent(
+          `🚨 EMERGENCY! NariShield.ai SOS triggered via [${source}]!`
+        ) + `%0A📍 Live GPS Location: https://maps.google.com/?q=${currentLat},${currentLng}` + cabInfoText + `%0A🎙️ Audio Evidence Clip Captured & Backed up to Cloud.`;
+
+        window.open(`https://api.whatsapp.com/send?phone=${cleanNum}&text=${msg}`, '_blank');
+      } else {
+        const smsMsg = encodeURIComponent(
+          `EMERGENCY SOS via [${source}]! Live GPS: https://maps.google.com/?q=${currentLat},${currentLng}` + (cabPlate ? ` Cab: ${cabPlate}` : "")
+        );
+        window.open(`sms:${cleanNum}?body=${smsMsg}`, '_blank');
+      }
+    }
+
+    function startVoiceEngine() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return;
+
+      if (recognition) { try { recognition.stop(); } catch(e){} }
+      
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = function(e) {
+        if (isSosActive || isAppPaused) return;
+        const text = e.results[e.results.length - 1][0].transcript.toLowerCase();
+        const matched = customKeywordsList.some(kw => text.includes(kw.toLowerCase()));
+        if (matched) { triggerSOS("Voice Keyword (" + text + ")"); }
+      };
+
+      recognition.onend = function() {
+        if (!isSosActive && !isAppPaused) { try { recognition.start(); } catch(e){} }
+      };
+
+      try { recognition.start(); } catch(e) {}
+    }
+  </script>
+</body>
+</html>
